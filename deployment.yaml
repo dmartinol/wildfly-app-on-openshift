@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-wildfly-app-config
+data:
+  HELLO_NAME: Peter
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-wildfly-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      deployment: my-wildfly-app
+  template:
+    metadata:
+      labels:
+        deployment: my-wildfly-app
+    spec:
+      serviceAccountName: wildfly-sa
+      securityContext: {}
+      containers:
+        - name: helloworld
+          image: >-
+            image-registry.openshift-image-registry.svc:5000/tjm-build/my-wildfly-app:1.0
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+            - containerPort: 8443
+              protocol: TCP
+            - containerPort: 9990
+              protocol: TCP
+          env:
+            - name: HELLO_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: my-wildfly-app-config
+                  key: HELLO_NAME
+          resources: {}
+          imagePullPolicy: Always
+          # securityContext:
+          #   runAs: 185
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-wildfly-app
+spec:
+  selector:
+    deployment: my-wildfly-app
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: helloworld
+spec:
+  path: /helloworld
+  to:
+    kind: Service
+    name: my-wildfly-app
+  port:
+    targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wildfly-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: scc-anyuid
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - anyuid
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: wildfly-sa-to-scc-anyuid
+subjects:
+  - kind: ServiceAccount
+    name: wildfly-sa
+roleRef:
+  kind: Role
+  name: scc-anyuid
+  apiGroup: rbac.authorization.k8s.io
+
+

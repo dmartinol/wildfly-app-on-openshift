@@ -1,0 +1,57 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: my-wildfly-app
+---
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: my-wildfly-build
+spec:
+  serviceAccount: builder
+  source:
+    type: Dockerfile
+    dockerfile: |
+      FROM ubi8/openjdk-11:latest AS builder
+      WORKDIR /src
+      USER root
+      RUN microdnf update && microdnf install git
+      RUN git clone https://github.com/dmartinol/jboss-eap-quickstarts.git
+      RUN cd jboss-eap-quickstarts/helloworld && mvn clean package
+
+      FROM ubi8/openjdk-11-runtime
+
+      WORKDIR /server
+
+      RUN curl -kL https://github.com/wildfly/wildfly/releases/download/26.1.2.Final/wildfly-26.1.2.Final.zip -o /tmp/wildfly-26.1.2.Final.zip
+      USER root
+      RUN microdnf update && microdnf install unzip
+      RUN unzip /tmp/wildfly-26.1.2.Final.zip -d /tmp
+      RUN mv /tmp/wildfly-26.1.2.Final/* /server
+
+      RUN echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers && \
+      sed -i 's/.*requiretty$/Defaults !requiretty/' /etc/sudoers
+      RUN useradd -m jboss ; echo jboss: | chpasswd ; usermod -a -G wheel jboss
+
+      ENV JBOSS_HOME=/server
+      RUN $JBOSS_HOME/bin/add-user.sh admin admin@2022 --silent
+      RUN echo "JAVA_OPTS=\"\$JAVA_OPTS -Djboss.bind.address=0.0.0.0 -Djboss.bind.address.management=0.0.0.0\"" >> $JBOSS_HOME/bin/standalone.conf
+
+      RUN chown -R jboss:jboss /server
+
+      EXPOSE 8080 9990 9999
+      USER jboss
+      ENV HELLO_NAME=Joe
+      COPY --from=builder /src/jboss-eap-quickstarts/helloworld/target/helloworld.war $JBOSS_HOME/standalone/deployments
+      CMD ["sh", "-c", "/server/bin/standalone.sh -DHELLO_NAME=${HELLO_NAME} -c standalone-full.xml"]
+  strategy:
+    type: Docker
+  output:
+    to:
+      kind: ImageStreamTag
+      name: my-wildfly-app:1.0
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+  triggers:
+    - type: ConfigChange
