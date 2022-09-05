@@ -4,7 +4,7 @@ binary distribution of `WildFly` in OpenShift.
 
 * The `my-wildfly-build` ConfigMap downloads the WildFly release `26.1.2.Final` from the relase registry, builds
 the application source code fetched from GitHub and finally generates the `my-wildfly-app:1.0` ImageStream
-* A `my-wildfly-app` Deployment runs the image and injects a tunrime environment variable `HELLO_NAME` from
+* A `my-wildfly-app` Deployment runs the image and injects a runtime environment variable `HELLO_NAME` from
   the `my-wildfly-app-config` ConfigMap
 
 ```mermaid
