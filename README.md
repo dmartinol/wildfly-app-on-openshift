@@ -17,12 +17,12 @@ graph TD
    my-wildfly-build(<b>BuildConfig</b><br/>my-wildfly-build)
    is:my-wildfly-app(<b>ImageStream</b><br/>my-wildfly-app:1.0)
    
-   my-wildfly-app-config -.HELLO_NAME.-> pod:my-wildfly-app
-   wildfly-release --Downloads--> my-wildfly-build
-   my-app-source --Fetches--> my-wildfly-build
+   pod:my-wildfly-app -.HELLO_NAME.-> my-wildfly-app-config
+   my-wildfly-build --Downloads--> wildfly-release
+   my-wildfly-build --Fetches--> my-app-source
    my-wildfly-build --Builds-->is:my-wildfly-app
    d:my-wildfly-app --Launches-->pod:my-wildfly-app
-   is:my-wildfly-app --Runs-->pod:my-wildfly-app
+   pod:my-wildfly-app --Runs-->is:my-wildfly-app
 ```
 
 ## Application source code
