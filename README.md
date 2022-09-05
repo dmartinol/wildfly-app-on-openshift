@@ -2,20 +2,23 @@
 An OpenShift deployment to build and install an `Hello World` application on top of a
 binary distribution of `WildFly` in OpenShift.
 
-* The source code is built from a `my-wildfly-build` ConfigMap that generates the `my-wildfly-app:1.0` ImageStream
+* The `my-wildfly-build` ConfigMap downloads the WildFly release `26.1.2.Final` from the relase registry, builds
+the application source code fetched from GitHub and finally generates the `my-wildfly-app:1.0` ImageStream
 * A `my-wildfly-app` Deployment runs the image and injects a tunrime environment variable `HELLO_NAME` from
   the `my-wildfly-app-config` ConfigMap
 
 ```mermaid
 graph TD
+   wildfly-release(<b>WildFly release registry</b><br/>wildfly-26.1.2.Final.zip)
    my-wildfly-app-config(<b>ConfigMap</b><br/>my-wildfly-app-config)
    d:my-wildfly-app(<b>Deployment</b><br/>my-wildfly-app)
    pod:my-wildfly-app(<b>Pod</b><br/>my-wildfly-app)
    my-app-source(<b>GitHub</b><br/>source code)
    my-wildfly-build(<b>BuildConfig</b><br/>my-wildfly-build)
-   is:my-wildfly-app(<b>ImageStream</b><br/>my-wildfly-app)
+   is:my-wildfly-app(<b>ImageStream</b><br/>my-wildfly-app:1.0)
    
    my-wildfly-app-config -.HELLO_NAME.-> pod:my-wildfly-app
+   wildfly-release --Downloads--> my-wildfly-build
    my-app-source --Fetches--> my-wildfly-build
    my-wildfly-build --Builds-->is:my-wildfly-app
    d:my-wildfly-app --Launches-->pod:my-wildfly-app
